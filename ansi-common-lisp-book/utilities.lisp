@@ -13,8 +13,7 @@
     (nreverse acc)))
 
 (defun filter (fn lst)
-  (remove-if #'(lambda (x)
-                 (not (funcall fn x)))
+  (remove-if (complement fn)
              lst))
 
 (defun most (fn > lst)
