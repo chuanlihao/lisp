@@ -18,7 +18,7 @@
 
 (defun most (fn > lst)
   (reduce #'(lambda (px py)
-              (if (> (car px) (car py))
+              (if (funcall > (car px) (car py))
                   px
                   py))
           (mapcar #'cons (mapcar fn lst) lst)))
