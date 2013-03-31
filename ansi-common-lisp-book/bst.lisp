@@ -32,11 +32,10 @@
               (t bst)))))
 
 (defun in-order-visit (bst)
-  (if bst
-      (progn 
-        (in-order-visit (node-l bst))
-        (format t " ~A" (node-elt bst))
-        (in-order-visit (node-r bst)))))
+  (when bst
+    (in-order-visit (node-l bst))
+    (format t " ~A" (node-elt bst))
+    (in-order-visit (node-r bst))))
 
 (defun bst-min (bst)
   (and bst
