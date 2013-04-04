@@ -3,8 +3,7 @@
 (defun tokens (str test start)
   (let ((p1 (position-if test str :start start)))
     (if p1
-        (let ((p2 (position-if #'(lambda (c)
-                                   (not (funcall test c)))
+        (let ((p2 (position-if (complement test)
                                str :start p1)))
           (cons (subseq str p1 p2)
                 (if p2
