@@ -14,6 +14,6 @@
         (rotatef (svref vec i) (svref vec j))
         (incf i)
         (decf j)))
-    (if (>= (- j l) 1) (quicksort vec l j))
-    (if (>= (- r i) 1) (quicksort vec i r)))
+    (if (< l j) (quicksort vec l j))
+    (if (< i r) (quicksort vec i r)))
   vec)
