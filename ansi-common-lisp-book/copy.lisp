@@ -1,3 +1,5 @@
+; from book ANSI Common Lisp, chapter 12
+
 (defun our-copy-list (lst)
   (if (null lst)
       nil
