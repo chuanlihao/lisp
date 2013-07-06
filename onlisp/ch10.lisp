@@ -1,4 +1,4 @@
-; programs from chapter 09, book On Lisp
+; programs from chapter 10, book On Lisp
 
 (defmacro before (x y seq)
   `(let ((xval ,x) (yval ,y) (seq ,seq))
