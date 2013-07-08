@@ -1,3 +1,5 @@
+; progs from chapter 11, book On Lisp
+
 (defmacro our-let (binds &body body)
   `((lambda ,(mapcar #'(lambda (x)
                          (if (consp x) (car x) x))
@@ -12,7 +14,6 @@
       ,(if (null binds)
            `(progn ,@body)
            `(our-let* ,(cdr binds) ,@body))))
-
 
 (defmacro when-bind ((var expr) &body body)
   `(let ((,var ,expr))
@@ -29,7 +30,6 @@
   `(let ,(mapcar #'(lambda (s) `(,s (gensym)))
                  syms)
      ,@body))
-
 
 ; condition-let
 (defmacro condlet (clauses &body body)
@@ -56,7 +56,6 @@
                   (list (cdr (assoc (car bindform) vars))
                         (cadr bindform))))
           cl))
-
 
 ; with- macro
 (setf *db* 'db)
@@ -91,7 +90,6 @@
       (release *db*)
       (setq *db* old-db))))
 
-
 ; conditional evaluation
 (defmacro if3 (test t-case nil-case ?-case)
   `(case ,test
@@ -105,7 +103,6 @@
        (cond ((plusp ,g) ,pos)
              ((zerop ,g) ,zero)
              (t          ,neg)))))
-
 
 (defmacro in (obj &rest choices)
   (let ((insym (gensym)))
@@ -137,7 +134,6 @@
           ((inq key t otherwise) `(t ,@rest))
           (t (error "bad >case clause")))))
 
-
 ; loops
 (defmacro forever (&body body)
   `(do ()
@@ -160,7 +156,6 @@
           (,gstop ,stop))
          ((> ,var ,gstop))
        ,@body)))
-
 
 (defun map0-n (fn n)
   (labels ((rec (i)
@@ -195,3 +190,95 @@
              ,@(map1-n #'(lambda (n)
                            `(nthcdr ,n ,dlst))
                        (1- (length params)))))))
+
+; mvdo*
+(defmacro mvdo* (parm-cl test-cl &body body)
+  (mvdo-gen parm-cl parm-cl test-cl body))
+
+(defun mvdo-gen (binds rebinds test body)
+  (if (null binds)
+      (let ((label (gensym)))
+        `(prog nil
+           ,label
+           (if ,(car test)
+               (return (progn ,@(cdr test))))
+           ,@body
+           ,@(mvdo-rebind-gen rebinds)
+           (go ,label)))
+      (let ((rec (mvdo-gen (cdr binds) rebinds test body)))
+        (let ((var/s (caar binds)) (expr (cadar binds)))
+          (if (atom var/s)
+              `(let ((,var/s ,expr)) ,rec)
+              `(multiple-value-bind ,var/s ,expr ,rec))))))
+
+(defun mvdo-rebind-gen (rebinds)
+  (cond ((null rebinds) nil)
+        ((< (length (car rebinds)) 3)
+         (mvdo-rebind-gen (cdr rebinds)))
+        (t
+         (cons (list (if (atom (caar rebinds))
+                         `setq
+                         `multiple-value-setq)
+                     (caar rebinds)
+                     (third (car rebinds)))
+               (mvdo-rebind-gen (cdr rebinds))))))
+
+; mvdo
+(defun group (source n)
+  (if (zerop n) (error "zero length"))
+  (labels ((rec (source acc)
+             (let ((rest (nthcdr n source)))
+               (if (consp rest)
+                   (rec rest (cons (subseq source 0 n) acc))
+                   (nreverse (cons source acc))))))
+    (if source (rec source nil) nil)))
+
+(defun mklist (obj)
+  (if (listp obj)
+      obj
+      (list obj)))
+
+(defun shuffle (x y)
+  (mapcan #'list x y))
+
+(defmacro mvpsetq (&rest args)
+  (let* ((pairs (group args 2))
+         (syms  (mapcar #'(lambda (p)
+                            (mapcar #'(lambda (x) (gensym))
+                                   (mklist (car p))))
+                        pairs)))
+    (labels ((rec (ps ss)
+               (if (null ps)
+                   `(setq
+                      ,@(mapcan #'(lambda (p s)
+                                    (shuffle (mklist (car p))
+                                             s))
+                                pairs
+                                syms))
+                   (let ((body (rec (cdr ps) (cdr ss))))
+                     (let ((var/s (caar ps))
+                           (expr (cadar ps)))
+                       (if (consp var/s)
+                           `(multiple-value-bind ,(car ss)
+                                                 ,expr
+                              ,body)
+                           `(let ((,@(car ss) ,expr))
+                              ,body)))))))
+      (rec pairs syms))))
+
+(defmacro mvdo (binds (test &rest result) &body body)
+  (let ((label (gensym)))
+    `(prog nil
+       (mvpsetq ,@(mapcan #'(lambda (b)
+                              (list (car b) (cadr b)))
+                          binds))
+       ,label
+       (if ,test
+           (return (progn ,@result)))
+       ,@body
+       (mvpsetq ,@(mapcan #'(lambda (b)
+                              (if (third b)
+                                  (list (car b)
+                                        (third b))))
+                          binds))
+       (go ,label))))
