@@ -1,0 +1,5 @@
+(defmacro with-gensyms (lst &body body)
+  `(let ,(mapcar #'(lambda (sym)
+                     (list sym '(gensym)))
+                 lst)
+     ,@body))
