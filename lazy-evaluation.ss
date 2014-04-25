@@ -74,8 +74,7 @@
 ((my-eval
    '(((lambda (fun)
         ((lambda (f) (f f))
-         (lambda (f)
-           (fun (lambda (x) ((f f) x))))))
+         (lambda (f) (fun (f f)))))
       (lambda (len)
         (lambda (l)
           (if (null? l)
