@@ -1,5 +1,6 @@
 (defun schedule-first-pair (l)
-asss
+asssooo
+ooo
   (defun remove-first (e l)
     (cond ((null l) nil)
           ((eq e (car l)) (cdr l))
