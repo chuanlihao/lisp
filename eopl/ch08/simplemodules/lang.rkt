@@ -1,0 +1,115 @@
+#lang racket
+
+(require eopl)
+(provide (all-defined-out))
+
+(define the-lexical-spec
+  '((whitespace (whitespace) skip)
+    (comment ("%" (arbno (not #\newline))) skip)
+    (identifier
+      (letter (arbno (or letter digit "_" "-" "?")))
+      symbol)
+    (number (digit (arbno digit)) number)
+    (number ("-" digit (arbno digit)) number)
+))
+
+(define the-grammar
+  '((program
+      ((arbno module-definition) expression)
+      a-program)
+    (module-definition
+      ("module" identifier
+        "interface" interface
+        "body" module-body)
+      a-module-definition)
+    (interface
+      ("[" (arbno declaration) "]")
+      simple-iface)
+    (declaration
+      (identifier ":" type)
+      var-decl)
+    (module-body
+      ("[" (arbno definition) "]")
+      defns-module-body)
+    (definition
+      (identifier "=" expression)
+      val-defn)
+    (expression (number) const-exp)
+    (expression
+      ("-" "(" expression "," expression ")")
+      diff-exp)
+    (expression
+      ("zero?" "(" expression ")")
+      zero?-exp)
+    (expression
+      ("if" expression "then" expression "else" expression)
+      if-exp)
+    (expression (identifier) var-exp)
+    (expression
+      ("from" identifier "take" identifier)
+      qualified-var-exp)
+    (expression
+      ("let" identifier "=" expression "in" expression)
+      let-exp)
+    (expression
+      ("proc" "(" identifier ":" type ")" expression)
+      proc-exp)
+    (expression
+      ("(" expression expression ")")
+      call-exp)
+    (expression
+      ("letrec" type identifier
+         "(" identifier ":" type ")"
+         "=" expression "in" expression)
+      letrec-exp)
+    (type
+      (identifier)
+      named-type)
+    (type
+      ("from" identifier "take" identifier)
+      qualified-type)
+    (type
+      ("int")
+      int-type)
+    (type
+      ("bool")
+      bool-type)
+    (type
+      ("(" type "->" type ")")
+      proc-type)
+))
+
+(sllgen:make-define-datatypes the-lexical-spec the-grammar)
+
+(define show-the-datatypes
+  (lambda () (sllgen:list-define-datatypes the-lexical-spec the-grammar)))
+
+(define scan&parse
+  (sllgen:make-string-parser the-lexical-spec the-grammar))
+
+(define just-scan
+  (sllgen:make-string-scanner the-lexical-spec the-grammar))
+
+(define type-to-external-form
+  (lambda (ty)
+    (cases type ty
+      (named-type (name) name)
+      (qualified-type (modname varname)
+        (list 'from modname 'take varname))
+      (int-type () 'int)
+      (bool-type () 'bool)
+      (proc-type (arg-type result-type)
+        (list
+          (type-to-external-form arg-type)
+          '->
+          (type-to-external-form result-type))))))
+
+(define decl->name
+  (lambda (decl)
+    (cases declaration decl
+      (var-decl (var type) var))))
+
+(define decl->type
+  (lambda (decl)
+    (cases declaration decl
+      (var-decl (var type) type))))
